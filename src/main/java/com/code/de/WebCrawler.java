@@ -60,34 +60,6 @@ public class WebCrawler {
         return new ArrayList<>(seen);
     }
 
-    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
-        // each worker run code to get list of urls and put next batch in a queue
-        BlockingQueue<CompletableFuture<Void>> q = new LinkedBlockingQueue<>();
-        Set<String> seen = ConcurrentHashMap.newKeySet();
-        seen.add(startUrl);
-        String home = getHome(startUrl);
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-        submit(home, startUrl, htmlParser, q, seen, executorService);
-        CompletableFuture<Void> cur;
-        while ((cur = q.poll()) != null) {
-            cur.join();
-        }
-        executorService.shutdown();
-        return new ArrayList<>(seen);
-    }
 
-    private static void submit(String home, String startUrl, HtmlParser htmlParser,
-        BlockingQueue<CompletableFuture<Void>> q,
-        Set<String> seen, ExecutorService executorService) {
-        q.add(CompletableFuture.runAsync(() -> {
-            for (String nextUrl : htmlParser.getUrls(startUrl)) {
-                if (home.equals(getHome(nextUrl))) {
-                    if (seen.add(nextUrl)) {
-                        submit(home, nextUrl, htmlParser, q, seen, executorService);
-                    }
-                }
-            },executorService));
-        };
-    }
 }
 
