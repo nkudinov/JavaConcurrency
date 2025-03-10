@@ -1,10 +1,7 @@
 package com.code.de;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -36,27 +33,32 @@ public class WebCrawler {
         return sb.toString();
     }
 
-    public List<String> crawl1(String startUrl, HtmlParser htmlParser) {
-        Queue<CompletableFuture<List<String>>> q = new LinkedList<>();
-        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
-        Set<String> seen = new HashSet<>();
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+        BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
+        Set<String> seen = ConcurrentHashMap.newKeySet();
         seen.add(startUrl);
-        String home = getHome(startUrl);
-        while (!q.isEmpty()) {
-            CompletableFuture<List<String>> cur = q.poll();
-            try {
-                List<String> urls = cur.get();
-                for(String nextUrl:urls) {
-                    if (!seen.contains(nextUrl) && home.equals(getHome(nextUrl))) {
-                        seen.add(nextUrl);
-                        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
-                    }
-                }
-            } catch (InterruptedException e) {
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-            }
+        submit(startUrl, seen, tasks, executorService, htmlParser);
+
+        CompletableFuture<Void> cur;
+        while ((cur = tasks.poll()) != null) {
+            cur.join();
         }
+
+        executorService.shutdown();
         return new ArrayList<>(seen);
+    }
+
+    private static void submit(String startUrl, Set<String> seen, BlockingQueue<CompletableFuture<Void>> tasks,
+        ExecutorService executorService, HtmlParser htmlParser) {
+        tasks.add(CompletableFuture.runAsync(() -> {
+            for (String nextUrl : htmlParser.getUrls(startUrl)) {
+                if (getHome(startUrl).equals(getHome(nextUrl)) && seen.add(nextUrl) ) {
+                    submit(nextUrl, seen, tasks, executorService, htmlParser);
+                }
+            }
+        }, executorService));
     }
 
 
