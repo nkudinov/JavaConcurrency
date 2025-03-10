@@ -22,14 +22,13 @@ public class WebCrawler {
 
 
     static String getHome(String url) {
-        StringBuilder sb = new StringBuilder();
         int cnt = 0;
+        StringBuilder sb = new StringBuilder();
         for (char ch : url.toCharArray()) {
             if (ch == '/') {
                 cnt++;
             } else if (cnt == 3) {
                 break;
-
             } else {
                 sb.append(ch);
             }
@@ -39,21 +38,21 @@ public class WebCrawler {
 
     public List<String> crawl1(String startUrl, HtmlParser htmlParser) {
         Queue<CompletableFuture<List<String>>> q = new LinkedList<>();
+        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
         Set<String> seen = new HashSet<>();
         seen.add(startUrl);
         String home = getHome(startUrl);
-        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
         while (!q.isEmpty()) {
             CompletableFuture<List<String>> cur = q.poll();
             try {
                 List<String> urls = cur.get();
-                for (String nextUrl : urls) {
+                for(String nextUrl:urls) {
                     if (!seen.contains(nextUrl) && home.equals(getHome(nextUrl))) {
                         seen.add(nextUrl);
                         q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
                     }
                 }
-            } catch (Exception e) {
+            } catch (InterruptedException e) {
 
             }
         }

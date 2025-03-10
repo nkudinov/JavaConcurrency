@@ -12,35 +12,38 @@ public class ThreadPool {
 
     static class Worker extends Thread {
 
-        BlockingQueue<Runnable> queue;
-        Lock lock;
+        private final BlockingQueue<Runnable> queue;
 
-        Worker(BlockingQueue<Runnable> q ) {
+        Worker(BlockingQueue<Runnable> q) {
             this.queue = q;
         }
 
         @Override
         public void run() {
-            while(true) {
-                Runnable task = queue.poll();
-                task.run();
+            try {
+                while (true) {
+                    Runnable task = queue.take();  // Blocks until a task is available
+                    task.run();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restore interrupted status
             }
         }
     }
 
-    private int capcity;
+    private final int capacity;
+    private final BlockingQueue<Runnable> tasks;
 
-    BlockingQueue<Runnable> tasks;
-
-    public ThreadPool(int capcity) {
-        this.capcity = capcity;
-        tasks = new LinkedBlockingQueue<>(capcity);
-        for(int i = 1; i<=capcity;i++) {
-            new Worker(tasks);
+    public ThreadPool(int capacity) {
+        this.capacity = capacity;
+        tasks = new LinkedBlockingQueue<>(capacity);
+        for (int i = 0; i < capacity; i++) {
+            Worker worker = new Worker(tasks);
+            worker.start();
         }
     }
 
-    public void submit(Runnable task) {
-            tasks.add(task);
+    public void submit(Runnable task) throws InterruptedException {
+        tasks.put(task);
     }
 }
