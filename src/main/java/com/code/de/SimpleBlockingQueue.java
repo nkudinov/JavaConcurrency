@@ -14,35 +14,37 @@ public class SimpleBlockingQueue<T> {
 
     Queue<T> q;
 
-    public SimpleBlockingQueue() {
+    int capacity;
+
+    public SimpleBlockingQueue(int capacity) {
+        this.capacity = capacity;
+        q = new LinkedList<>();
         lock = new ReentrantLock();
         notFull = lock.newCondition();
         notEmpty = lock.newCondition();
-        q = new LinkedList<>();
     }
 
-    public void add(T obj) throws InterruptedException {
+    public void put(T obj) throws InterruptedException {
         lock.lock();
         try {
-
-            while (q.size() == 10) {
+            while (q.size() == capacity) {
                 notFull.await();
             }
             q.add(obj);
-            notEmpty.signal();
+            notEmpty.signal();  // Signal that the queue is no longer empty
         } finally {
             lock.unlock();
         }
     }
 
-    public T poll() throws InterruptedException {
+    public T get() throws InterruptedException {
         lock.lock();
         try {
             while (q.isEmpty()) {
                 notEmpty.await();
             }
             T obj = q.poll();
-            notFull.signal();
+            notFull.signal();  // Signal that the queue is no longer full
             return obj;
         } finally {
             lock.unlock();
