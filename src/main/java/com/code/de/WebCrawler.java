@@ -1,7 +1,11 @@
 package com.code.de;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -26,41 +30,34 @@ public class WebCrawler {
                 cnt++;
             } else if (cnt == 3) {
                 break;
-            } else {
+            } else if (cnt == 2){
                 sb.append(ch);
             }
         }
         return sb.toString();
     }
-
     public List<String> crawl(String startUrl, HtmlParser htmlParser) {
-        BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
-        Set<String> seen = ConcurrentHashMap.newKeySet();
+        Queue<CompletableFuture<List<String>>> q = new LinkedList<>();
+        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
+        Set<String> seen = new HashSet<>();
         seen.add(startUrl);
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        String home = getHome(startUrl);
+        while (!q.isEmpty()) {
+            var cur = q.poll();
+            try {
+                List<String> nextUrls = cur.get();
+                for(String next:nextUrls) {
+                    if (home.equals(getHome(next)) && !seen.add(next)) {
+                        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(next)));
+                        seen.add(next);
+                    }
+                }
+            } catch (Exception e) {
 
-        submit(startUrl, seen, tasks, executorService, htmlParser);
-
-        CompletableFuture<Void> cur;
-        while ((cur = tasks.poll()) != null) {
-            cur.join();
+            }
         }
-
-        executorService.shutdown();
         return new ArrayList<>(seen);
     }
-
-    private static void submit(String startUrl, Set<String> seen, BlockingQueue<CompletableFuture<Void>> tasks,
-        ExecutorService executorService, HtmlParser htmlParser) {
-        tasks.add(CompletableFuture.runAsync(() -> {
-            for (String nextUrl : htmlParser.getUrls(startUrl)) {
-                if (getHome(startUrl).equals(getHome(nextUrl)) && seen.add(nextUrl) ) {
-                    submit(nextUrl, seen, tasks, executorService, htmlParser);
-                }
-            }
-        }, executorService));
-    }
-
 
 }
 
