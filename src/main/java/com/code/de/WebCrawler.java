@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -44,7 +45,7 @@ public class WebCrawler {
                         q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
                     }
                 }
-            } catch(InterruptedException |ExecutionException e) {
+            } catch(InterruptedException | ExecutionException e) {
 
             }
         }
@@ -65,7 +66,7 @@ public class WebCrawler {
         }, executorService));
     }
 
-    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+    public List<String> crawl2(String startUrl, HtmlParser htmlParser) {
         String home = getHome(startUrl);
         BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
         Set<String> seen = ConcurrentHashMap.newKeySet();
