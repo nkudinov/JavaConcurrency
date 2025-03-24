@@ -30,7 +30,7 @@ public class CountDownLatch {
         }
     }
 
-    public await() throws InterruptedException {
+    public void await() throws InterruptedException {
         lock.lock();
         try {
             while (count > 0) {
