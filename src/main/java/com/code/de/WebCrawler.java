@@ -50,6 +50,40 @@ public class WebCrawler {
         }
         return new ArrayList<>(seen);
     }
+
+    void submit(BlockingQueue<CompletableFuture<Void>> tasks, String url, HtmlParser htmlParser, Set<String> seen, ExecutorService executorService) {
+        String home = getHome(url);
+        tasks.add(CompletableFuture.runAsync(() -> {
+            for (String next : htmlParser.getUrls(url)) {
+                if (home.equals(getHome(next))) {
+                    if (!seen.contains(next)) {
+                        seen.add(next);
+                        submit(tasks, next, htmlParser, seen, executorService);
+                    }
+                }
+            }
+        }, executorService));
+    }
+
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+        String home = getHome(startUrl);
+        BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
+        Set<String> seen = ConcurrentHashMap.newKeySet();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+        submit(tasks, startUrl, htmlParser, seen, executorService);
+
+        while (!tasks.isEmpty()) {
+            try {
+                tasks.take().join();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        executorService.shutdown();
+        return new ArrayList<>(seen);
+    }
 }
 
     interface HtmlParser {
