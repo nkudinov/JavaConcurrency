@@ -22,17 +22,11 @@ public class CyclicBarrier1 {
     public void await() throws InterruptedException {
         lock.lock();
         try {
-            // Decrement the count
             count--;
-
-            // If the current thread is the last one to arrive
             if (count == 0) {
-                // Notify all waiting threads that they can continue
                 condition.signalAll();
-                // Reset the count for the next use of the barrier
                 count = initialCount;
             } else {
-                // If not the last one, wait until the count reaches zero
                 condition.await();
             }
         } finally {
