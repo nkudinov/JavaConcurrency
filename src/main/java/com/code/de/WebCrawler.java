@@ -40,16 +40,15 @@ public class WebCrawler {
         Set<String> seen = new HashSet<>();
         seen.add(startUrl);
         String home = getHome(startUrl);
-        queue.add(CompletableFuture.supplyAsync(() -> {
-            htmlParser.getUrls(startUrl);
-        }));
+        queue.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
         while (!queue.isEmpty()) {
             CompletableFuture<List<String>> cur = queue.poll();
             try {
                 List<String> urls = cur.get();
                 for (String nextUrl : urls) {
                     if (home.equals(getHome(nextUrl)) && !seen.contains(nextUrl)) {
-                        queue.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
+                        seen.add(nextUrl);
+                        queue.add(CompletableFuture.supplyAsync(() ->htmlParser.getUrls(nextUrl)));
                     }
                 }
             } catch (Exception e) {
