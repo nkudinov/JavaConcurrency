@@ -58,7 +58,7 @@ public class WebCrawler {
         return new ArrayList<>(seen);
     }
 
-    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+    public List<String> crawl3(String startUrl, HtmlParser htmlParser) {
         String home = getHome(startUrl);
         BlockingQueue<String> queue = new LinkedBlockingQueue<>();
         Set<String> seen = ConcurrentHashMap.newKeySet();
