@@ -1,5 +1,6 @@
 package com.code.de;
 
+import com.code.de.ThreadPool3.Worker;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -13,17 +14,19 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class WebCrawler {
     String getHome(String url) {
         int cnt = 0;
         StringBuilder sb = new StringBuilder();
         for(char ch:url.toCharArray()) {
-            if (ch=='/') {
+            if (ch =='/') {
                 cnt++;
-                if (cnt == 3) {
-                    break;
-                }
+            } else if (cnt == 3) {
+                break;
             } else if (cnt == 2) {
                 sb.append(ch);
             }
@@ -32,21 +35,38 @@ public class WebCrawler {
     }
     public List<String> crawl(String startUrl, HtmlParser htmlParser) {
         String home = getHome(startUrl);
-        Queue<CompletableFuture<List<String>>> q = new LinkedList<>();
-        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
-        Set<String> seen = new HashSet<>();
+        BlockingQueue<String> queue = new LinkedBlockingQueue<>();
+        Set<String> seen = ConcurrentHashMap.newKeySet();
+        queue.add(startUrl);
         seen.add(startUrl);
-        while(!q.isEmpty()) {
-            var cur = q.poll();
-            try {
-                List<String> nextUrls = cur.get();
-                for(String nextUrl:nextUrls) {
-                    if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
-                        q.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
+        AtomicInteger counter = new AtomicInteger(1);
+        List<Thread> workers = new ArrayList<>();
+        for(int i = 1; i<= 10; i++) {
+            Thread worker = new Thread() {
+                @Override
+                public void run() {
+                    while (counter.get() != 0) {
+                           String url = queue.poll();
+                           if (url != null) {
+                                for(String nextUrl:htmlParser.getUrls(url)) {
+                                    if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
+                                        counter.incrementAndGet();
+                                        queue.add(nextUrl);
+                                    }
+                                }
+                                counter.decrementAndGet();
+                           }
                     }
                 }
-            } catch(InterruptedException | ExecutionException e) {
-
+            };
+            worker.start();
+            workers.add(worker);
+        }
+        for(Thread worker:workers) {
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
         return new ArrayList<>(seen);
