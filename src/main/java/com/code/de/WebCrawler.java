@@ -19,11 +19,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class WebCrawler {
+
     String getHome(String url) {
         int cnt = 0;
         StringBuilder sb = new StringBuilder();
-        for(char ch:url.toCharArray()) {
-            if (ch =='/') {
+        for (char ch : url.toCharArray()) {
+            if (ch == '/') {
                 cnt++;
             } else if (cnt == 3) {
                 break;
@@ -33,6 +34,31 @@ public class WebCrawler {
         }
         return sb.toString();
     }
+
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+        Queue<CompletableFuture<List<String>>> queue = new LinkedList<>();
+        Set<String> seen = new HashSet<>();
+        seen.add(startUrl);
+        String home = getHome(startUrl);
+        queue.add(CompletableFuture.supplyAsync(() -> {
+            htmlParser.getUrls(startUrl);
+        }));
+        while (!queue.isEmpty()) {
+            CompletableFuture<List<String>> cur = queue.poll();
+            try {
+                List<String> urls = cur.get();
+                for (String nextUrl : urls) {
+                    if (home.equals(getHome(nextUrl)) && !seen.contains(nextUrl)) {
+                        queue.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(nextUrl)));
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return new ArrayList<>(seen);
+    }
+
     public List<String> crawl(String startUrl, HtmlParser htmlParser) {
         String home = getHome(startUrl);
         BlockingQueue<String> queue = new LinkedBlockingQueue<>();
@@ -41,28 +67,28 @@ public class WebCrawler {
         seen.add(startUrl);
         AtomicInteger counter = new AtomicInteger(1);
         List<Thread> workers = new ArrayList<>();
-        for(int i = 1; i<= 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             Thread worker = new Thread() {
                 @Override
                 public void run() {
                     while (counter.get() != 0) {
-                           String url = queue.poll();
-                           if (url != null) {
-                                for(String nextUrl:htmlParser.getUrls(url)) {
-                                    if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
-                                        counter.incrementAndGet();
-                                        queue.add(nextUrl);
-                                    }
+                        String url = queue.poll();
+                        if (url != null) {
+                            for (String nextUrl : htmlParser.getUrls(url)) {
+                                if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
+                                    counter.incrementAndGet();
+                                    queue.add(nextUrl);
                                 }
-                                counter.decrementAndGet();
-                           }
+                            }
+                            counter.decrementAndGet();
+                        }
                     }
                 }
             };
             worker.start();
             workers.add(worker);
         }
-        for(Thread worker:workers) {
+        for (Thread worker : workers) {
             try {
                 worker.join();
             } catch (InterruptedException e) {
@@ -72,7 +98,8 @@ public class WebCrawler {
         return new ArrayList<>(seen);
     }
 
-    void submit(BlockingQueue<CompletableFuture<Void>> tasks, String url, HtmlParser htmlParser, Set<String> seen, ExecutorService executorService) {
+    void submit(BlockingQueue<CompletableFuture<Void>> tasks, String url, HtmlParser htmlParser, Set<String> seen,
+        ExecutorService executorService) {
         String home = getHome(url);
         tasks.add(CompletableFuture.runAsync(() -> {
             for (String next : htmlParser.getUrls(url)) {
@@ -107,10 +134,10 @@ public class WebCrawler {
     }
 }
 
-    interface HtmlParser {
+interface HtmlParser {
 
-        public List<String> getUrls(String url);
-    }
+    public List<String> getUrls(String url);
+}
 
 
 
