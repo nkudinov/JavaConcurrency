@@ -11,7 +11,7 @@ public class Semaphore1 {
 
     public Semaphore1(int permits) {
         if (permits <= 0) {
-            throw new IllegalArgumentException(" For simplicity. Number of permit could not be negative")
+            throw new IllegalArgumentException(" For simplicity. Number of permit could not be negative");
         }
         this.permits = permits;
         this.lock = new ReentrantLock();
