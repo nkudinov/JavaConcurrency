@@ -26,33 +26,33 @@ public class WebCrawler {
         for (char ch : url.toCharArray()) {
             if (ch == '/') {
                 cnt++;
-            } else if (cnt == 3) {
-                break;
             } else if (cnt == 2) {
                 sb.append(ch);
+            } else if (cnt == 3) {
+                break;
+
             }
         }
         return sb.toString();
     }
 
-    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+    public List<String> crawl1(String startUrl, HtmlParser htmlParser) {
         Queue<CompletableFuture<List<String>>> queue = new LinkedList<>();
+        String home = getHome(startUrl);
         Set<String> seen = new HashSet<>();
         seen.add(startUrl);
-        String home = getHome(startUrl);
         queue.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(startUrl)));
         while (!queue.isEmpty()) {
             CompletableFuture<List<String>> cur = queue.poll();
             try {
                 List<String> urls = cur.get();
-                for (String nextUrl : urls) {
-                    if (home.equals(getHome(nextUrl)) && !seen.contains(nextUrl)) {
-                        seen.add(nextUrl);
-                        queue.add(CompletableFuture.supplyAsync(() ->htmlParser.getUrls(nextUrl)));
+                for (String next : urls) {
+                    if (home.equals(getHome(next)) && seen.add(next)) {
+                        queue.add(CompletableFuture.supplyAsync(() -> htmlParser.getUrls(next)));
                     }
                 }
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("There was an issue");
             }
         }
         return new ArrayList<>(seen);
@@ -97,39 +97,32 @@ public class WebCrawler {
         return new ArrayList<>(seen);
     }
 
-    void submit(BlockingQueue<CompletableFuture<Void>> tasks, String url, HtmlParser htmlParser, Set<String> seen,
-        ExecutorService executorService) {
-        String home = getHome(url);
-        tasks.add(CompletableFuture.runAsync(() -> {
-            for (String next : htmlParser.getUrls(url)) {
-                if (home.equals(getHome(next))) {
-                    if (!seen.contains(next)) {
-                        seen.add(next);
-                        submit(tasks, next, htmlParser, seen, executorService);
-                    }
-                }
-            }
-        }, executorService));
-    }
 
-    public List<String> crawl2(String startUrl, HtmlParser htmlParser) {
-        String home = getHome(startUrl);
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+
         BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
         Set<String> seen = ConcurrentHashMap.newKeySet();
         ExecutorService executorService = Executors.newFixedThreadPool(10);
-
-        submit(tasks, startUrl, htmlParser, seen, executorService);
-
-        while (!tasks.isEmpty()) {
-            try {
-                tasks.take().join();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        submit(startUrl, htmlParser, seen, tasks, executorService);
+        CompletableFuture<Void> task = null;
+        while ((task = tasks.poll()) != null) {
+            task.join();
         }
-
         executorService.shutdown();
         return new ArrayList<>(seen);
+    }
+
+    private void submit(String startUrl, HtmlParser htmlParser, Set<String> seen,
+        BlockingQueue<CompletableFuture<Void>> tasks, ExecutorService executorService) {
+        seen.add(startUrl);
+        tasks.add(CompletableFuture.runAsync(() -> {
+            String home = getHome(startUrl);
+            for (String nextUrl : htmlParser.getUrls(startUrl)) {
+                if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
+                    submit(nextUrl, htmlParser, seen, tasks, executorService);
+                }
+            }
+        }, executorService));
     }
 }
 
