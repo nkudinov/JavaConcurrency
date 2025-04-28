@@ -17,7 +17,7 @@ public class Semaphore7 {
         this.notEnought = lock.newCondition();
     }
 
-    public void acquire() {
+    public void acquire() throws InterruptedException {
         lock.lock();
         try {
             while (count > permits) {
