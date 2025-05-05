@@ -45,7 +45,7 @@ public class ThreadPool8 {
                         task.task.run();
                         task.future.complete(null);
                     } else if (task.callable != null) {
-                        @SuppressWarnings("unchecked")
+
                         Task<Object> t = (Task<Object>) task;
                         t.future.complete(t.callable.call());
                     }
