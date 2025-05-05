@@ -4,6 +4,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ThreadPool8 {
@@ -88,5 +89,21 @@ public class ThreadPool8 {
         for (Thread worker : workers) {
             worker.interrupt();
         }
+    }
+
+    public static void main(String[] args) {
+        ThreadPool8 threadPool8 = new ThreadPool8(11,11);
+        String res = null;
+        try {
+            res = threadPool8.submit(()-> {
+                return "hello";
+            }).get();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(res);
+        threadPool8.shutdown();
     }
 }
