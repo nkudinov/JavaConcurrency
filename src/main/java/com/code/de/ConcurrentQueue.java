@@ -14,7 +14,7 @@ public class ConcurrentQueue<T> {
 
     public T poll() {
         synchronized (queue) {
-            return queue.poll(); // Вернёт null, если пусто
+            return queue.poll();
         }
     }
 
