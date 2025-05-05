@@ -1,12 +1,12 @@
 package com.code.de;
 
-import com.code.de.ThreadPool3.Worker;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,8 +15,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class WebCrawler {
 
@@ -98,32 +96,7 @@ public class WebCrawler {
     }
 
 
-    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
 
-        BlockingQueue<CompletableFuture<Void>> tasks = new LinkedBlockingQueue<>();
-        Set<String> seen = ConcurrentHashMap.newKeySet();
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-        submit(startUrl, htmlParser, seen, tasks, executorService);
-        CompletableFuture<Void> task = null;
-        while ((task = tasks.poll()) != null) {
-            task.join();
-        }
-        executorService.shutdown();
-        return new ArrayList<>(seen);
-    }
-
-    private void submit(String startUrl, HtmlParser htmlParser, Set<String> seen,
-        BlockingQueue<CompletableFuture<Void>> tasks, ExecutorService executorService) {
-        seen.add(startUrl);
-        tasks.add(CompletableFuture.runAsync(() -> {
-            String home = getHome(startUrl);
-            for (String nextUrl : htmlParser.getUrls(startUrl)) {
-                if (home.equals(getHome(nextUrl)) && seen.add(nextUrl)) {
-                    submit(nextUrl, htmlParser, seen, tasks, executorService);
-                }
-            }
-        }, executorService));
-    }
 }
 
 interface HtmlParser {
