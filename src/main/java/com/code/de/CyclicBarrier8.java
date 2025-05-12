@@ -35,6 +35,7 @@ public class CyclicBarrier8 {
                     condition.await();
                 }
             }
+ 
         } finally {
             lock.unlock();
         }

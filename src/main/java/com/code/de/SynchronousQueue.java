@@ -1,10 +1,10 @@
 package com.code.de;
 
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class SynchronousQueue<T> {
 
     private T item = null;
     private boolean hasItem = false;
@@ -27,5 +27,8 @@ public class SynchronousQueue<T> {
         }
     }
 
+    public static void main(String[] args) {
+        SynchronousQueue
+    }
 
 }
