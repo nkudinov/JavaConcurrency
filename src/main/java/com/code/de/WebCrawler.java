@@ -1,20 +1,12 @@
 package com.code.de;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class WebCrawler {
 
@@ -35,10 +27,32 @@ public class WebCrawler {
     }
 
 
-    public List<String> crawl3(String startUrl, HtmlParser htmlParser) {
-
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
+        ConcurrentQueue<CompletableFuture<Void>> tasks = new ConcurrentQueue<>();
+        Set<String> seen = ConcurrentHashMap.newKeySet();
+        ExecutorService service = Executors.newFixedThreadPool(10);
+        seen.add(startUrl);
+        submit(tasks, startUrl, htmlParser, seen, service);
+        while (!tasks.isEmpty()) {
+            tasks.poll().join();
+        }
+        service.shutdown();
+        return new ArrayList<>(seen);
     }
 
+    private void submit(ConcurrentQueue<CompletableFuture<Void>> tasks, String startUrl, HtmlParser htmlParser,
+        Set<String> seen, ExecutorService service) {
+        String home = getHome(startUrl);
+        tasks.add(CompletableFuture.runAsync(
+            () -> {
+                for (String next : htmlParser.getUrls(startUrl)) {
+                    if (home.equals(getHome(next)) && seen.add(next)) {
+                        submit(tasks, next, htmlParser, seen, service);
+                    }
+                }
+            }
+            , service));
+    }
 }
 
 interface HtmlParser {
