@@ -1,5 +1,7 @@
 package com.code.de;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +12,7 @@ import java.util.concurrent.RecursiveTask;
 public class WebCrawler1 {
 
     interface HtmlParser {
+
         List<String> getUrls(String url);
     }
 
@@ -22,6 +25,7 @@ public class WebCrawler1 {
     }
 
     class Task extends RecursiveTask<Void> {
+
         private final Set<String> seen;
         private final HtmlParser htmlParser;
         private final String url;
