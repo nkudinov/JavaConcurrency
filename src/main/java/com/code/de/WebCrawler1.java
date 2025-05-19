@@ -10,58 +10,48 @@ import java.util.concurrent.RecursiveTask;
 public class WebCrawler1 {
 
     interface HtmlParser {
-
-        public List<String> getUrls(String url);
+        List<String> getUrls(String url);
     }
 
     String getHome(String url) {
-        int cnt = 0;
-        StringBuilder sb = new StringBuilder();
-        for (char ch : url.toCharArray()) {
-            if (ch == '/') {
-                cnt++;
-            } else if (cnt == 2) {
-                sb.append(ch);
-            } else if (cnt == 3) {
-                break;
-
-            }
+        try {
+            return new URL(url).getHost();
+        } catch (MalformedURLException e) {
+            return "";
         }
-        return sb.toString();
     }
 
-    private class Task extends RecursiveTask<Void> {
+    class Task extends RecursiveTask<Void> {
+        private final Set<String> seen;
+        private final HtmlParser htmlParser;
+        private final String url;
 
-        private String url;
-        private HtmlParser htmlParser;
-
-        private Set<String> seen;
-
-        public Task(String url, HtmlParser htmlParser, Set<String> seen) {
-            this.url = url;
-            this.htmlParser = htmlParser;
+        public Task(Set<String> seen, HtmlParser htmlParser, String url) {
             this.seen = seen;
+            this.htmlParser = htmlParser;
+            this.url = url;
         }
 
         @Override
         protected Void compute() {
-            List<Task> tasks = new ArrayList<>();
+            List<Task> subtasks = new ArrayList<>();
             for (String next : htmlParser.getUrls(url)) {
                 if (getHome(url).equals(getHome(next)) && seen.add(next)) {
-                    tasks.add(new Task(next, htmlParser, seen));
+                    Task task = new Task(seen, htmlParser, next);
+                    subtasks.add(task);
                 }
             }
-            invokeAll(tasks);
-
-            return  null;
+            invokeAll(subtasks);
+            return null;
         }
     }
 
-    public List<String> crawl(String startUrl,  HtmlParser htmlParser) {
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {
         ForkJoinPool forkJoinPool = new ForkJoinPool(10);
         Set<String> seen = ConcurrentHashMap.newKeySet();
-        forkJoinPool.execute(new Task(startUrl, htmlParser, seen));
-        forkJoinPool.shutdown();
+        seen.add(startUrl);
+        Task rootTask = new Task(seen, htmlParser, startUrl);
+        forkJoinPool.invoke(rootTask);
         return new ArrayList<>(seen);
     }
 }
