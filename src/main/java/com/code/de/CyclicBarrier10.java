@@ -28,10 +28,10 @@ public class CyclicBarrier10 {
             count--;
 
             if (count == 0) {
-                // Last thread to arrive
+
                 generation++;
                 count = parties;
-                condition.signalAll(); // Wake up everyone
+                condition.signalAll();
                 return;
             }
 
