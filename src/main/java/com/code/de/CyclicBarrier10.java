@@ -1,5 +1,6 @@
 package com.code.de;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -9,7 +10,7 @@ public class CyclicBarrier10 {
     private final int parties;
     private int count;
     private int generation = 0;
-
+    AtomicLong
     private final Lock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
 
