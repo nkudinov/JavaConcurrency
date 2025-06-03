@@ -10,7 +10,7 @@ public class CyclicBarrier10 {
     private final int parties;
     private int count;
     private int generation = 0;
-    AtomicLong
+
     private final Lock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
 
