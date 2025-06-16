@@ -43,18 +43,21 @@ public class WebCrawler6 implements WebCrawlerInterface {
         return new ArrayList<>(seenUrls);
     }
 
-    private void crawl(String startUrl, HtmlParser htmlParser, Set<String> seenUrls, ExecutorService executorService,
-        AtomicInteger count, Semaphore semaphore) {
-        String home = getHome(startUrl);
+    private void crawl(String url, HtmlParser htmlParser, Set<String> seenUrls,
+        ExecutorService executorService, AtomicInteger count, Semaphore semaphore) {
+        String home = getHome(url);
+
         CompletableFuture.runAsync(() -> {
-            for (String next : htmlParser.getUrls(startUrl)) {
+            for (String next : htmlParser.getUrls(url)) {
                 if (home.equals(getHome(next)) && seenUrls.add(next)) {
                     count.incrementAndGet();
+                    crawl(next, htmlParser, seenUrls, executorService, count, semaphore);
                 }
             }
-        }, executorService);
-        if (count.get() == 0) {
-            semaphore.release();
-        }
+        }, executorService).whenComplete((result, error) -> {
+            if (count.decrementAndGet() == 0) {
+                semaphore.release();
+            }
+        });
     }
 }

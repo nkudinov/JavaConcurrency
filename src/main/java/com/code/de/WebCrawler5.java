@@ -55,7 +55,6 @@ public class WebCrawler5 {
         ForkJoinPool pool = new ForkJoinPool(10);
         Set<String> seen = ConcurrentHashMap.newKeySet();
         seen.add(startUrl);
-        pool.invoke(new Task(new Start(startUrl, htmlParser), htmlParser));
         return new ArrayList<>(seen);
     }
 }
