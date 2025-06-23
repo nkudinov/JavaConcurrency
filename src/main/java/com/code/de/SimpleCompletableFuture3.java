@@ -64,6 +64,7 @@ public class SimpleCompletableFuture3<T> {
     public void whenComplete(Runnable runnable) {
         lock.lock();
         try {
+            get();
             if (hasCompleted) {
                 runnable.run();
             } else {
