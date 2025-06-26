@@ -63,9 +63,22 @@ public class SimpleCompletableFuture5<T> {
             lock.unlock();
         }
     }
-
+    public void whenComplete(Runnable runnable) throws InterruptedException {
+        lock.lock();
+        try {
+            while (!isCompleted) {
+                completedCondition.await();
+            }
+            runnable.run();
+        } finally {
+            lock.unlock();
+        }
+    }
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         SimpleCompletableFuture5<String> future = SimpleCompletableFuture5.supplyAsync(() -> "hello");
+        future.whenComplete(()->{
+            System.out.println("test");
+        });
         System.out.println(future.get());
     }
 
