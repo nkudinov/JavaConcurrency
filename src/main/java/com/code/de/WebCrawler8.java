@@ -28,7 +28,6 @@ public class WebCrawler8 implements WebCrawlerInterface {
         return sb.toString();
     }
 
-
     @Override
     public List<String> crawl(String startUrl, HtmlParser htmlParser) {
         BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(10);
